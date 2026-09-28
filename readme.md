@@ -1,0 +1,1 @@
+Tämä tiedosto luotu, jotta kaikilla osallistujilla olisi pääsy arkistoomme. Ryhmä 4.
