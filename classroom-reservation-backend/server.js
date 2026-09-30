@@ -11,7 +11,7 @@ app.use(express.json());
 
 // Проверочный роут (Health Check)
 app.get('/', (req, res) => {
-  res.json({ message: 'API системы бронирования мест работает!' });
+  res.json({ message: 'Varausjärjestelmän rajapinta toimii!' });
 });
 
 // Запуск сервера

@@ -1,23 +1,24 @@
-const { Pool } = require('pg');
+const mysql = require('mysql2/promise');
 require('dotenv').config();
 
-const pool = new Pool({
-  user: process.env.DB_USER,
+const pool = mysql.createPool({
   host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   port: process.env.DB_PORT,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
 });
 
-pool.on('connect', () => {
-  console.log('Onnistunut yhteys PostgreSQL-tietokantaan');
-});
+pool.getConnection()
+  .then((connection) => {
+    console.log('Onnistunut yhteys MySQL-tietokantaan');
+    connection.release();
+  })
+  .catch((err) => {
+    console.error('Virhe yhdistettäessä MySQL-tietokantaan:', err.message);
+  });
 
-pool.on('error', (err) => {
-  console.error('Virhe yhdistettäessä tietokantaan:', err);
-});
-
-module.exports = {
-  query: (text, params) => pool.query(text, params),
-  pool,
-};
+module.exports = pool;
