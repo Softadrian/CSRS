@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
 const MySQLStore = require('express-mysql-session')(session);
+const adminRoutes = require('./src/routes/adminRoutes');
 require('dotenv').config();
 
 // Подключение к базе данных MySQL
