@@ -12,6 +12,7 @@ const classroomRoutes = require('./src/routes/classroomRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const reservationRoutes = require('./src/routes/reservationRoutes');
 
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -45,6 +46,7 @@ app.use(session({
 app.use('/api/classrooms', classroomRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/reservations', reservationRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Запуск сервера
 app.listen(PORT, () => {
