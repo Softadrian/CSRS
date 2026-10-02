@@ -1,1 +1,10 @@
+# Секретные переменные окружения
 .env
+.env.local
+*.env
+
+# Зависимости
+node_modules/
+
+# Логи
+npm-debug.log*
