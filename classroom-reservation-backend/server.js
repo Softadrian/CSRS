@@ -69,5 +69,5 @@ app.use((err, req, res, next) => {
 
 // Palvelimen käynnistys
 app.listen(PORT, () => {
-  console.log(`Palvelin on käynnistetty portissa ${PORT}`);
-// });
+ console.log(`Palvelin on käynnistetty portissa ${PORT}`);
+});
