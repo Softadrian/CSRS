@@ -47,6 +47,9 @@ app.use(session({
   }
 }));
 
+// SWAGGER UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
 // Регистрация маршрутов API
 app.use('/api/classrooms', classroomRoutes);
 app.use('/api/auth', authRoutes);

@@ -1,0 +1,271 @@
+openapi: 3.0.3
+info:
+  title: Classroom Seat Reservation System API
+  description: |
+    REST API бэкенда системы бронирования мест в аудиториях (Luokkavarausjärjestelmä).
+    Построено на Node.js, Express, `mysql2/promise` и сессиях MySQL.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5000/api
+    description: Локальный сервер разработки
+
+paths:
+  /auth/register:
+    post:
+      summary: Регистрация нового пользователя (Käyttäjä)
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nimi
+                - sahkoposti
+                - salasana
+              properties:
+                nimi:
+                  type: string
+                  example: Matti Meikäläinen
+                sahkoposti:
+                  type: string
+                  format: email
+                  example: matti@example.com
+                salasana:
+                  type: string
+                  format: password
+                  example: secret123
+      responses:
+        '201':
+          description: Пользователь успешно зарегистрирован
+        '400':
+          description: Неверные входные данные или email уже существует
+        '500':
+          description: Внутренняя ошибка сервера
+
+  /auth/login:
+    post:
+      summary: Авторизация пользователя и создание сессии
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sahkoposti
+                - salasana
+              properties:
+                sahkoposti:
+                  type: string
+                  format: email
+                  example: matti@example.com
+                salasana:
+                  type: string
+                  format: password
+                  example: secret123
+      responses:
+        '200':
+          description: Успешный вход в систему
+        '401':
+          description: Неверный логин или пароль
+
+  /auth/logout:
+    post:
+      summary: Выход из системы (уничтожение сессии)
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: Сессия завершена
+
+  /classrooms:
+    get:
+      summary: Получение списка всех аудиторий (Luokkahuoneet)
+      tags:
+        - Classrooms
+      responses:
+        '200':
+          description: Список аудиторий
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Luokkahuone'
+
+  /classrooms/{id}/seats:
+    get:
+      summary: Получение мест конкретной аудитории (Luokkahuoneen paikat)
+      tags:
+        - Classrooms
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Luokka_id аудитории
+      responses:
+        '200':
+          description: Список мест аудитории
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LuokkahuoneenPaikka'
+
+  /reservations:
+    get:
+      summary: Получение списка бронирований текущего пользователя
+      tags:
+        - Reservations
+      responses:
+        '200':
+          description: Список бронирований
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Varaus'
+        '401':
+          description: Требуется авторизация
+
+    post:
+      summary: Создание нового бронирования (Varaus)
+      tags:
+        - Reservations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - paikka_id
+                - ajankohta
+              properties:
+                paikka_id:
+                  type: integer
+                  example: 12
+                ajankohta:
+                  type: string
+                  format: date-time
+                  example: "2026-10-10T10:00:00Z"
+      responses:
+        '201':
+          description: Бронирование успешно создано
+        '409':
+          description: Место уже забронировано на это время
+
+  /reservations/{id}:
+    delete:
+      summary: Отмена бронирования
+      tags:
+        - Reservations
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Varaus_id бронирования
+      responses:
+        '200':
+          description: Бронирование успешно отменено
+
+components:
+  schemas:
+    Kayttaja:
+      type: object
+      description: Модель пользователя (Käyttäjät)
+      properties:
+        kayttaja_id:
+          type: integer
+          description: Уникальный идентификатор (Primary Key)
+          example: 1
+        nimi:
+          type: string
+          example: Matti Meikäläinen
+        sahkoposti:
+          type: string
+          example: matti@example.com
+        salasanan_hash:
+          type: string
+          example: "$2b$10$e83...hash"
+        rooli:
+          type: string
+          enum: [user, admin]
+          example: user
+
+    Luokkahuone:
+      type: object
+      description: Модель аудитории (Luokkahuoneet)
+      properties:
+        luokka_id:
+          type: integer
+          description: Уникальный идентификатор (Primary Key)
+          example: 101
+        nimi:
+          type: string
+          example: Auditorium A
+        koko:
+          type: integer
+          example: 50
+        rivit:
+          type: integer
+          example: 5
+        paikat:
+          type: integer
+          example: 10
+
+    LuokkahuoneenPaikka:
+      type: object
+      description: Модель конкретного места в аудитории (Luokkahuoneen paikat)
+      properties:
+        lp_id:
+          type: integer
+          description: Уникальный идентификатор места (Primary Key)
+          example: 12
+        luokka_id:
+          type: integer
+          description: Внешний ключ (Foreign Key к Luokkahuoneet)
+          example: 101
+        rivin_numero:
+          type: integer
+          example: 2
+        paikka_numero:
+          type: integer
+          example: 4
+
+    Varaus:
+      type: object
+      description: Модель бронирования (Varaukset)
+      properties:
+        varaus_id:
+          type: integer
+          description: Уникальный идентификатор (Primary Key)
+          example: 5001
+        kayttaja_id:
+          type: integer
+          description: Внешний ключ (Foreign Key к Käyttäjät)
+          example: 1
+        paikka_id:
+          type: integer
+          description: Внешний ключ (Foreign Key к Luokkahuoneen paikat)
+          example: 12
+        ajankohta:
+          type: string
+          format: date-time
+          example: "2026-10-10T10:00:00Z"
+        status:
+          type: string
+          enum: [active, cancelled]
+          example: active
