@@ -1,14 +1,19 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
 const MySQLStore = require('express-mysql-session')(session);
 const adminRoutes = require('./src/routes/adminRoutes');
-require('dotenv').config();
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
 
-// Подключение к базе данных MySQL
+// Swagger-dokumentointitiedoston lataaminen
+const swaggerDocument = YAML.load('./swagger.yaml');
+
+// Yhdistäminen MySQL-tietokantaan
 const pool = require('./src/config/db');
 
-// Импорт маршрутов
+// Reittien tuonti
 const classroomRoutes = require('./src/routes/classroomRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const reservationRoutes = require('./src/routes/reservationRoutes');
@@ -17,7 +22,7 @@ const reservationRoutes = require('./src/routes/reservationRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Настройка хранилища сессий в MySQL
+// Istuntojen tallennuksen määritys MySQL-tietokantaan
 const sessionStore = new MySQLStore({}, pool);
 
 // Middlewares
@@ -27,7 +32,7 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Настройка сессий (Session Middleware)
+// Istuntojen hallintaohjelmiston (Session Middleware) määritys
 app.use(session({
   key: 'session_cookie_name',
   secret: process.env.SESSION_SECRET || 'super_secret_session_key',
@@ -35,31 +40,34 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    maxAge: 1000 * 60 * 60 * 24, // Сессия действительна 24 часа
-    httpOnly: true, // Защита от доступа через JavaScript (XSS)
-    secure: false,  // true только при использовании HTTPS
+    maxAge: 1000 * 60 * 60 * 24, // Istunto on voimassa 24 tuntia
+    httpOnly: true, // Suojaus JavaScript-pääsyltä (XSS)
+    secure: false,  // true vain HTTPS-yhteyttä käytettäessä
     sameSite: 'lax'
   }
 }));
 
-// Регистрация маршрутов API
+// Asetetaan Swagger UI -dokumentaatio osoitteeseen /api-docs
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+// API-reittien rekisteröinti
 app.use('/api/classrooms', classroomRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/reservations', reservationRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Обработка несуществующих маршрутов (404)
+// Olemattomien reittien käsittely (404)
 app.use((req, res, next) => {
-  res.status(404).json({ message: 'Маршрут не найден' });
+  res.status(404).json({ message: 'Reittiä ei löytynyt' });
 });
 
-// Глобальный обработчик ошибок (500)
+// Globaali virheenkäsittelijä (500)
 app.use((err, req, res, next) => {
-  console.error('Необработанная ошибка сервера:', err);
-  res.status(500).json({ message: 'Внутренняя ошибка сервера' });
+  console.error('Käsittelemätön palvelinvirhe:', err);
+  res.status(500).json({ message: 'Sisäinen palvelinvirhe' });
 });
 
-// Запуск сервера
+// Palvelimen käynnistys
 app.listen(PORT, () => {
-  console.log(`Palvelin on käynnistetty portissa ${PORT}`);
+ console.log(`Palvelin on käynnistetty portissa ${PORT}`);
 });

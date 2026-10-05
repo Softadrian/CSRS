@@ -1,0 +1,271 @@
+openapi: 3.0.3
+info:
+  title: Luokkavarausjärjestelmä API
+  description: |
+    REST API luokkahuoneiden paikkavarausjärjestelmän taustajärjestelmälle (backend).
+    Toteutettu Node.js-, Express-, `mysql2/promise`- ja MySQL-sessiohallinnalla.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5000/api
+    description: Paikallinen kehityspalvelin
+
+paths:
+  /auth/register:
+    post:
+      summary: Uuden käyttäjän rekisteröinti
+      tags:
+        - Tunnistautuminen (Auth)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nimi
+                - sahkoposti
+                - salasana
+              properties:
+                nimi:
+                  type: string
+                  example: Matti Meikäläinen
+                sahkoposti:
+                  type: string
+                  format: email
+                  example: matti@example.com
+                salasana:
+                  type: string
+                  format: password
+                  example: salasana123
+      responses:
+        '201':
+          description: Käyttäjä rekisteröity onnistuneesti
+        '400':
+          description: Virheelliset syötetiedot tai sähköposti on jo käytössä
+        '500':
+          description: Palvelinvirhe
+
+  /auth/login:
+    post:
+      summary: Käyttäjän kirjautuminen ja istunnon luonti
+      tags:
+        - Tunnistautuminen (Auth)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sahkoposti
+                - salasana
+              properties:
+                sahkoposti:
+                  type: string
+                  format: email
+                  example: matti@example.com
+                salasana:
+                  type: string
+                  format: password
+                  example: salasana123
+      responses:
+        '200':
+          description: Kirjautuminen onnistui
+        '401':
+          description: Virheellinen sähköposti tai salasana
+
+  /auth/logout:
+    post:
+      summary: Uloskirjautuminen (istunnon päättäminen)
+      tags:
+        - Tunnistautuminen (Auth)
+      responses:
+        '200':
+          description: Istunto päätetty onnistuneesti
+
+  /classrooms:
+    get:
+      summary: Kaikkien luokkahuoneiden haku
+      tags:
+        - Luokkahuoneet
+      responses:
+        '200':
+          description: Luettelo luokkahuoneista
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Luokkahuone'
+
+  /classrooms/{id}/seats:
+    get:
+      summary: Tietyn luokkahuoneen paikkojen haku
+      tags:
+        - Luokkahuoneet
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Luokkahuoneen Luokka_id
+      responses:
+        '200':
+          description: Luettelo luokkahuoneen paikoista
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LuokkahuoneenPaikka'
+
+  /reservations:
+    get:
+      summary: Kirjautuneen käyttäjän varausten haku
+      tags:
+        - Varaukset
+      responses:
+        '200':
+          description: Luettelo käyttäjän varauksista
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Varaus'
+        '401':
+          description: Kirjautuminen vaaditaan
+
+    post:
+      summary: Uuden varauksen luominen
+      tags:
+        - Varaukset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - paikka_id
+                - ajankohta
+              properties:
+                paikka_id:
+                  type: integer
+                  example: 12
+                ajankohta:
+                  type: string
+                  format: date-time
+                  example: "2026-10-10T10:00:00Z"
+      responses:
+        '201':
+          description: Varaus luotu onnistuneesti
+        '409':
+          description: Paikka on jo varattu kyseisenä ajankohtana
+
+  /reservations/{id}:
+    delete:
+      summary: Varauksen peruuttaminen
+      tags:
+        - Varaukset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Varauksen Varaus_id
+      responses:
+        '200':
+          description: Varaus peruutettu onnistuneesti
+
+components:
+  schemas:
+    Kayttaja:
+      type: object
+      description: Käyttäjän tiedot (Käyttäjät-taulu)
+      properties:
+        kayttaja_id:
+          type: integer
+          description: Pääavain (Primary Key)
+          example: 1
+        nimi:
+          type: string
+          example: Matti Meikäläinen
+        sahkoposti:
+          type: string
+          example: matti@example.com
+        salasanan_hash:
+          type: string
+          example: "$2b$10$e83...hash"
+        rooli:
+          type: string
+          enum: [user, admin]
+          example: user
+
+    Luokkahuone:
+      type: object
+      description: Luokkahuoneen tiedot (Luokkahuoneet-taulu)
+      properties:
+        luokka_id:
+          type: integer
+          description: Pääavain (Primary Key)
+          example: 101
+        nimi:
+          type: string
+          example: Auditório A
+        koko:
+          type: integer
+          example: 50
+        rivit:
+          type: integer
+          example: 5
+        paikat:
+          type: integer
+          example: 10
+
+    LuokkahuoneenPaikka:
+      type: object
+      description: Yksittäisen paikan tiedot (Luokkahuoneen paikat -taulu)
+      properties:
+        lp_id:
+          type: integer
+          description: Pääavain (Primary Key)
+          example: 12
+        luokka_id:
+          type: integer
+          description: Viiteavain Luokkahuoneet-tauluun (Foreign Key)
+          example: 101
+        rivin_numero:
+          type: integer
+          example: 2
+        paikka_numero:
+          type: integer
+          example: 4
+
+    Varaus:
+      type: object
+      description: Varauksen tiedot (Varaukset-taulu)
+      properties:
+        varaus_id:
+          type: integer
+          description: Pääavain (Primary Key)
+          example: 5001
+        kayttaja_id:
+          type: integer
+          description: Viiteavain Käyttäjät-tauluun (Foreign Key)
+          example: 1
+        paikka_id:
+          type: integer
+          description: Viiteavain Luokkahuoneen paikat -tauluun (Foreign Key)
+          example: 12
+        ajankohta:
+          type: string
+          format: date-time
+          example: "2026-10-10T10:00:00Z"
+        status:
+          type: string
+          enum: [active, cancelled]
+          example: active

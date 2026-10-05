@@ -4,7 +4,7 @@ const adminController = require('../controllers/adminController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const adminMiddleware = require('../middlewares/adminMiddleware');
 
-// Все админские маршруты требуют и авторизации, и роли admin
+// Kaikki ylläpitäjän reitit vaativat sekä tunnistautumisen että admin-roolin
 router.use(authMiddleware);
 router.use(adminMiddleware);
 

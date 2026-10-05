@@ -3,7 +3,7 @@ const router = express.Router();
 const reservationController = require('../controllers/reservationController');
 const authMiddleware = require('../middlewares/authMiddleware');
 
-// Все маршруты бронирования требуют авторизации
+// Kaikki varausreitit vaativat tunnistautumisen
 router.use(authMiddleware);
 
 router.post('/', reservationController.createReservation);
