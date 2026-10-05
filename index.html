@@ -129,7 +129,7 @@
 </div>
 <script>
     // Taustajärjestelmän API-osoite
-    const API_URL = 'http://localhost:3000/api';  //laita tähän oikea osoite, jos se on eri kuin localhost:3000
+    const API_URL = 'http://localhost:5000/api';  //laita tähän oikea osoite, jos se on eri kuin localhost:3000
  
     // Globaalit muuttujat sovelluksen tilanhallintaan 
     let selectedSeatId = null;  // Valitun istumapaikan ID 
@@ -244,9 +244,10 @@
                 const errData = await res.json(); 
                 errorEl.textContent = errData.message || 'Rekisteröinti epäonnistui'; 
             } 
-        } catch (err) { 
-            errorEl.textContent = 'Verkkovirhe rekisteröinnissä'; 
-        } 
+       } catch (err) {
+    console.error(err);
+    errorEl.textContent = err.message;
+} 
     } 
  
     // Käsittelee käyttäjän uloskirjautumisen 
@@ -516,7 +517,8 @@
  
                 const vId = v.varaus_id; 
                 const userName = v.student_nimi || currentUser?.nimi || 'Käyttäjä'; 
-                const className = v.nimi || 'Luokka'; 
+               // const className = v.nimi || 'Luokka'; 
+               const className = v.luokka_nimi || 'Luokka';
                 const seatInfo = `Rivi ${v.rivin_numero}, Paikka ${v.paikka_numero}`; 
                 const formattedDate = v.ajankohta ? v.ajankohta.split('T')[0] : ''; 
  

@@ -1,57 +1,75 @@
 const pool = require('../config/db');
 
-// Hae kaikkien tilojen luettelo
+// Hae kaikki luokkahuoneet
 exports.getAllClassrooms = async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM Luokkahuoneet');
+    const [rows] = await pool.query(
+      'SELECT * FROM Luokkahuoneet'
+    );
+
     res.json(rows);
   } catch (error) {
-    console.error('Virhe tilojen hakemisessa:', error);
-    res.status(500).json({ message: 'Palvelinvirhe' });
+    console.error('Virhe luokkahuoneiden hakemisessa:', error);
+    res.status(500).json({
+      message: 'Palvelinvirhe'
+    });
   }
 };
 
-// Hae tila paikkakartalla ja varaustilanteella tietylle päivämäärälle
+// Hae luokkahuoneen paikat ja varaustilanne
 exports.getClassroomSeats = async (req, res) => {
   const { id } = req.params;
-  const { date } = req.query; // YYYY-MM-DD
+  const { date } = req.query;
 
   if (!date) {
-    return res.status(400).json({ message: 'Parametri date on pakollinen (YYYY-MM-DD)' });
+    return res.status(400).json({
+      message: 'Päivämäärä puuttuu'
+    });
   }
 
   try {
-    // Haetaan luokan tiedot
-    const [classrooms] = await pool.query('SELECT * FROM Luokkahuoneet WHERE luokka_id = ?', [id]);
-    
+    const [classrooms] = await pool.query(
+      'SELECT * FROM Luokkahuoneet WHERE luokka_id = ?',
+      [id]
+    );
+
     if (classrooms.length === 0) {
-      return res.status(404).json({ message: 'Tilaa ei löytynyt' });
+      return res.status(404).json({
+        message: 'Luokkahuonetta ei löytynyt'
+      });
     }
 
-    // Получаем места и статус их бронирования на конкретную дату
     const query = `
-      SELECT 
+      SELECT
         p.lp_id,
         p.rivin_numero,
         p.paikka_numero,
-        CASE WHEN v.varaus_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_reserved
+        CASE
+          WHEN v.varaus_id IS NOT NULL THEN TRUE
+          ELSE FALSE
+        END AS is_reserved
       FROM Luokkahuoneen_paikat p
-      LEFT JOIN Varaukset v 
-        ON p.lp_id = v.paikka_id 
-        AND DATE(v.ajankohta) = ? 
+      LEFT JOIN Varaukset v
+        ON p.lp_id = v.paikka_id
+        AND DATE(v.ajankohta) = ?
         AND v.status = 'active'
       WHERE p.luokka_id = ?
       ORDER BY p.rivin_numero, p.paikka_numero
     `;
 
-    const [seats] = await pool.query(query, [date, id]);
+    const [seats] = await pool.query(
+      query,
+      [date, id]
+    );
 
     res.json({
       classroom: classrooms[0],
       seats: seats
     });
   } catch (error) {
-    console.error('Ошибка при получении мест:', error);
-    res.status(500).json({ message: 'Ошибка сервера' });
+    console.error('Virhe paikkojen hakemisessa:', error);
+    res.status(500).json({
+      message: 'Palvelinvirhe'
+    });
   }
 };

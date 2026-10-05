@@ -22,10 +22,9 @@ const sessionStore = new MySQLStore({}, pool);
 
 // Middlewares
 app.use(cors({
-  origin: 'http://localhost:3000', // URL вашего фронтенд-приложения
-  credentials: true // Обязательно для передачи Cookie между клиентом и сервером
+  origin: 'http://127.0.0.1:5500',
+  credentials: true
 }));
-
 app.use(express.json());
 
 // Настройка сессий (Session Middleware)
