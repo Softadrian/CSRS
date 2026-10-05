@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const classroomController = require('../controllers/classroomController');
 
-// Маршруты
+// Reitit
 router.get('/', classroomController.getAllClassrooms);
 router.get('/:id/seats', classroomController.getClassroomSeats);
 
