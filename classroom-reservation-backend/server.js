@@ -47,7 +47,7 @@ app.use(session({
   }
 }));
 
-// SWAGGER UI
+// Asetetaan Swagger UI -dokumentaatio osoitteeseen /api-docs
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Регистрация маршрутов API
