@@ -40,9 +40,9 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    maxAge: 1000 * 60 * 60 * 24, // Сессия действительна 24 часа
-    httpOnly: true, // Защита от доступа через JavaScript (XSS)
-    secure: false,  // true только при использовании HTTPS
+    maxAge: 1000 * 60 * 60 * 24, // Istunto on voimassa 24 tuntia
+    httpOnly: true, // Suojaus JavaScript-pääsyltä (XSS)
+    secure: false,  // true vain HTTPS-yhteyttä käytettäessä
     sameSite: 'lax'
   }
 }));
@@ -58,13 +58,13 @@ app.use('/api/admin', adminRoutes);
 
 // Olemattomien reittien käsittely (404)
 app.use((req, res, next) => {
-  res.status(404).json({ message: 'Маршрут не найден' });
+  res.status(404).json({ message: 'Reittiä ei löytynyt' });
 });
 
 // Globaali virheenkäsittelijä (500)
 app.use((err, req, res, next) => {
-  console.error('Необработанная ошибка сервера:', err);
-  res.status(500).json({ message: 'Внутренняя ошибка сервера' });
+  console.error('Käsittelemätön palvelinvirhe:', err);
+  res.status(500).json({ message: 'Sisäinen palvelinvirhe' });
 });
 
 // Palvelimen käynnistys
