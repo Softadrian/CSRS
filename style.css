@@ -1,0 +1,153 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #f0efef;
+}
+
+.container {
+    width: 100%;
+    max-width: 800px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.card {
+    background: rgb(151, 148, 148);
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.grid {
+    display: inline-grid;
+    grid-template-columns: repeat(5, 60px);
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.seat {
+    height: 60px;
+    border: none;
+    background: #4caf50;
+    color: rgb(175, 171, 171);
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.seat.selected {
+    background: #ff9800;
+}
+
+.seat.reserved {
+    background: #f44336;
+    cursor: not-allowed;
+}
+
+input, select, button {
+    padding: 8px;
+    margin: 5px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+td, th {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+/* Osioiden lukitseminen */
+.disabled-section {
+opacity: 0.5;
+pointer-events: none;
+}
+ 
+/* Kirjautuneen käyttäjän tiedot */
+.login-info {
+display: flex;
+justify-content: space-between;
+align-items: center;
+}
+ 
+/* Valittu paikka */
+.seat.selected {
+background-color: #ff9800;
+color: rgb(161, 155, 155);
+}
+ 
+/* Varattu paikka */
+.seat.reserved {
+background-color: #ccc;
+cursor: not-allowed;
+}
+ 
+/* Välilehtipainikkeet */
+.tab-btn {
+margin-right: 5px;
+padding: 5px 10px;
+cursor: pointer;
+}
+ 
+/* Kirjautumis- ja rekisteröintikentät */
+#loginSection input,
+#registerSection input {
+width: 100%;
+padding: 5px;
+box-sizing: border-box;
+margin-bottom: 8px;
+}
+ 
+/* Luokkavalinta */
+#classroomSelect {
+width: 100%;
+padding: 5px;
+margin-top: 5px;
+}
+ 
+/* Päivämääräkenttä */
+#bookingDate {
+width: 100%;
+padding: 5px;
+box-sizing: border-box;
+margin-top: 5px;
+}
+ 
+/* Virheilmoitus */
+#loginError {
+color: red;
+font-size: 0.85em;
+margin-top: 5px;
+}
+ 
+/* Kirjaudu ulos */
+#logoutBtn {
+background-color: #d9534f;
+}
+ 
+/* Valitun paikan teksti */
+#selectedSeatText5 {
+font-weight: bold;
+}
+ 
+/* Varauskehotus */
+#loginPromptText {
+color: #d9534f;
+font-weight: bold;
+margin-top: 10px;
+}
+/* Varaa paikka -painike harmaaksi kun lomake on lukittu */
+.disabled-section #reserveBtn {
+background-color: #999;
+color: white;
+cursor: not-allowed;
+}

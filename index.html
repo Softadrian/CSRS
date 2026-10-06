@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luokkahuonevarausjärjestelmä frontend justus</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .disabled-section #reserveBtn { 
+            background-color: #999;
+            color: white;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    
+    <!-- Kirjautumis- ja rekisteröintiosio -->
+    <div class="card">
+        <div id="authForms">
+            <div style="margin-bottom: 10px;">
+                <button class="tab-btn" id="showLoginTab">Kirjaudu</button>
+                <button class="tab-btn" id="showRegisterTab">Rekisteröidy</button>
+            </div>
+
+            <!-- Kirjautumislomake -->
+            <div id="loginSection">
+                <h2>Kirjautuminen</h2>
+                <input type="email" id="loginEmail" placeholder="Sähköposti" style="margin-bottom: 8px; width: 100%; padding: 5px; box-sizing: border-box;">
+                <input type="password" id="loginPassword" placeholder="Salasana" style="margin-bottom: 10px; width: 100%; padding: 5px; box-sizing: border-box;">
+                <button id="loginBtn">Kirjaudu sisään</button>
+            </div>
+
+            <!-- Rekisteröintilomake -->
+            <div id="registerSection" style="display: none;">
+                <h2>Rekisteröidy opiskelijaksi</h2>
+                <input type="text" id="regName" placeholder="Nimi" style="margin-bottom: 8px; width: 100%; padding: 5px; box-sizing: border-box;">
+                <input type="email" id="regEmail" placeholder="Sähköposti" style="margin-bottom: 8px; width: 100%; padding: 5px; box-sizing: border-box;">
+                <input type="password" id="regPassword" placeholder="Salasana" style="margin-bottom: 10px; width: 100%; padding: 5px; box-sizing: border-box;">
+                <button id="registerBtn">Rekisteröidy</button>
+            </div>
+
+            <p id="loginError" style="color: red; font-size: 0.85em; margin-top: 5px;"></p>
+        </div>
+        
+        <div id="logoutSection" class="login-info" style="display:none;">
+            <span style="color: green; font-weight: bold;" id="loggedUserText">Kirjautunut sisään</span>
+            <button id="logoutBtn" style="background-color: #d9534f;">Kirjaudu ulos</button>
+        </div>
+    </div>
+
+    <!-- Luokkahuoneen, päivämäärän ja istumapaikkojen valinta -->
+    <div class="card">
+        <h1>Luokkahuonevarausjärjestelmä</h1>
+        <div style="margin-bottom: 10px;">
+            <label for="classroomSelect">Valitse luokka:</label>
+            <select id="classroomSelect" style="width: 100%; padding: 5px; margin-top: 5px;"></select>
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label for="bookingDate">Valitse päivämäärä:</label>
+            <input type="date" id="bookingDate" style="width: 100%; padding: 5px; box-sizing: border-box; margin-top: 5px;">
+        </div>
+        <div>
+            <div id="seatContainer" class="grid"></div>
+        </div>
+    </div>
+
+    <!-- Varauslomake valitulle paikalle -->
+    <div class="card">
+        <h2 id="formTitle">Tee varaus</h2>
+        <div id="reservationFormContent" class="disabled-section">
+            <p>Valittu paikka: <span id="selectedSeatText" style="font-weight: bold;">Ei valittu</span></p>
+            <button id="reserveBtn" style="margin-top: 10px;">Varaa paikka</button>
+        </div>
+        <p id="loginPromptText" style="color: #d9534f; font-weight: bold; margin-top: 10px;">Kirjaudu sisään tehdäksesi varauksia.</p>
+    </div>
+
+    <!-- Admin: uuden luokkahuoneen lisääminen -->
+    <div class="card" id="adminClassroomSection" style="display: none;">
+        <h2>Lisää luokkahuone</h2>
+
+        <input
+            type="text"
+            id="adminClassroomName"
+            placeholder="Luokkahuoneen nimi"
+            style="margin-bottom: 8px; width: 100%; padding: 5px; box-sizing: border-box;"
+        >
+
+        <input
+            type="number"
+            id="adminClassroomRows"
+            placeholder="Rivien määrä"
+            min="1"
+            style="margin-bottom: 8px; width: 100%; padding: 5px; box-sizing: border-box;"
+        >
+
+        <input
+            type="number"
+            id="adminClassroomSeats"
+            placeholder="Paikkoja per rivi"
+            min="1"
+            style="margin-bottom: 10px; width: 100%; padding: 5px; box-sizing: border-box;"
+        >
+
+        <button id="addClassroomBtn">
+            Lisää luokkahuone
+        </button>
+
+        <p id="adminClassroomMessage" style="font-weight: bold; margin-top: 10px;"></p>
+    </div>
+
+    <!-- Olemassa olevien varausten taulukko -->
+    <div class="card">
+        <h2>Varaukset</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Käyttäjä</th>
+                    <th>Luokka</th>
+                    <th>Paikka</th>
+                    <th>Ajankohta</th>
+                    <th>Toiminnot</th>
+                </tr>
+            </thead>
+            <tbody id="reservationTable"></tbody>
+        </table>
+    </div>
+</div>
+<script>
+    // Taustajärjestelmän API-osoite
+    const API_URL = 'http://127.0.0.1:5000/api';  //laita tähän oikea osoite, jos se on eri kuin localhost:3000
+ 
+    // Globaalit muuttujat sovelluksen tilanhallintaan 
+    let selectedSeatId = null;  // Valitun istumapaikan ID 
+    let currentUser = null;     // Kirjautuneen käyttäjän tiedot 
+    let currentSeatsData = [];  // Luokkahuoneen paikkatiedot 
+ 
+    // Sovelluksen alustusfunktio 
+    async function init() { 
+        // Kuunnellaan luokkahuoneen ja päivämäärän muutoksia ja ladataan paikat uudelleen 
+        document.getElementById('classroomSelect').addEventListener('change', loadSeats); 
+        document.getElementById('bookingDate').addEventListener('change', loadSeats); 
+         
+        // Liitetään toimintopainikkeisiin vastaavat tapahtumankuuntelijat 
+        document.getElementById('reserveBtn').addEventListener('click', handleReservationAction); 
+        document.getElementById('loginBtn').addEventListener('click', handleLogin); 
+        document.getElementById('registerBtn').addEventListener('click', handleRegister); 
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout); 
+
+        // Admin-toiminto: uuden luokkahuoneen lisääminen
+        document.getElementById('addClassroomBtn').addEventListener('click', handleAddClassroom);
+ 
+        // Välilehtien vaihtaminen kirjautumisen ja rekisteröitymisen välillä 
+        document.getElementById('showLoginTab').addEventListener('click', () => { 
+            document.getElementById('loginSection').style.display = 'block'; 
+            document.getElementById('registerSection').style.display = 'none'; 
+        }); 
+        document.getElementById('showRegisterTab').addEventListener('click', () => { 
+            document.getElementById('loginSection').style.display = 'none'; 
+            document.getElementById('registerSection').style.display = 'block'; 
+        }); 
+         
+        // Asetetaan päivämäärävalitsimeen oletuksena tämä päivä 
+        const today = new Date();
+        const localDate = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+        document.getElementById('bookingDate').value = localDate;
+ 
+        // Tarkistetaan onko käyttäjä jo kirjautunut ja ladataan aloitusdata 
+        await checkAuth(); 
+        await loadClassrooms(); 
+        await loadReservations(); 
+    } 
+ 
+    // Tarkistaa taustajärjestelmästä, onko aktiivista istuntoa/kirjautumista 
+    async function checkAuth() { 
+        try { 
+            const res = await fetch(`${API_URL}/auth/me`, { credentials: 'include' }); 
+            if (res.ok) { 
+                currentUser = await res.json(); 
+            } else { 
+                currentUser = null; 
+            } 
+        } catch (err) { 
+            currentUser = null; 
+        } 
+        updateAuthUI(); 
+    } 
+ 
+    // Käsittelee käyttäjän kirjautumisen 
+    async function handleLogin() { 
+        const sahkoposti = document.getElementById('loginEmail').value; 
+        const salasana = document.getElementById('loginPassword').value; 
+        const errorEl = document.getElementById('loginError'); 
+        errorEl.textContent = ''; 
+ 
+        try { 
+            const res = await fetch(`${API_URL}/auth/login`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ sahkoposti, salasana }), 
+                credentials: 'include' 
+            }); 
+ 
+            if (res.ok) { 
+                const data = await res.json(); 
+                currentUser = data.user; 
+                 
+                document.getElementById('loginPassword').value = ''; 
+                document.getElementById('loginEmail').value = ''; 
+                 
+                updateAuthUI(); 
+                await loadReservations(); 
+                await loadSeats(); 
+            } else { 
+                const errData = await res.json(); 
+                errorEl.textContent = errData.message || 'Kirjautuminen epäonnistui'; 
+            } 
+        } catch (err) { 
+            errorEl.textContent = 'Verkkovirhe kirjautumisessa'; 
+        } 
+    } 
+ 
+    // Käsittelee uuden käyttäjän rekisteröitymisen 
+    async function handleRegister() { 
+        const nimi = document.getElementById('regName').value; 
+        const sahkoposti = document.getElementById('regEmail').value; 
+        const salasana = document.getElementById('regPassword').value; 
+        const errorEl = document.getElementById('loginError'); 
+        errorEl.textContent = ''; 
+ 
+        try { 
+            const res = await fetch(`${API_URL}/auth/register`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ nimi, sahkoposti, salasana }), 
+                credentials: 'include' 
+            }); 
+ 
+            if (res.ok) { 
+                alert('Rekisteröinti onnistui! Voit nyt kirjautua sisään.'); 
+                document.getElementById('showLoginTab').click(); 
+            } else { 
+                const errData = await res.json(); 
+                errorEl.textContent = errData.message || 'Rekisteröinti epäonnistui'; 
+            } 
+       } catch (err) {
+    console.error(err);
+    errorEl.textContent = err.message;
+} 
+    } 
+ 
+    // Käsittelee käyttäjän uloskirjautumisen 
+    async function handleLogout() { 
+        try { 
+            await fetch(`${API_URL}/auth/logout`, { 
+                method: 'POST', 
+                credentials: 'include' 
+            }); 
+        } catch (e) { 
+            console.error("Virhe uloskirjautumisessa", e); 
+        } 
+         
+        currentUser = null; 
+        updateAuthUI(); 
+        await loadReservations(); 
+        await loadSeats(); 
+    } 
+
+    // Admin: uuden luokkahuoneen lisääminen
+    async function handleAddClassroom() {
+        if (!currentUser || (currentUser.rooli !== 'admin' && currentUser.rooli !== 'ylläpitäjä')) {
+            alert('Vain ylläpitäjä voi lisätä luokkahuoneita.');
+            return;
+        }
+
+        const nimi = document.getElementById('adminClassroomName').value.trim();
+        const rivit = Number(document.getElementById('adminClassroomRows').value);
+        const paikat = Number(document.getElementById('adminClassroomSeats').value);
+        const messageEl = document.getElementById('adminClassroomMessage');
+
+        messageEl.textContent = '';
+
+        if (!nimi) {
+            messageEl.textContent = 'Anna luokkahuoneelle nimi.';
+            messageEl.style.color = 'red';
+            return;
+        }
+
+        if (!Number.isInteger(rivit) || rivit < 1) {
+            messageEl.textContent = 'Rivien määrän pitää olla vähintään 1.';
+            messageEl.style.color = 'red';
+            return;
+        }
+
+        if (!Number.isInteger(paikat) || paikat < 1) {
+            messageEl.textContent = 'Paikkojen määrän pitää olla vähintään 1.';
+            messageEl.style.color = 'red';
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/admin/classrooms`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ nimi, rivit, paikat })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                messageEl.textContent = data.message || 'Luokkahuone lisätty onnistuneesti.';
+                messageEl.style.color = 'green';
+
+                document.getElementById('adminClassroomName').value = '';
+                document.getElementById('adminClassroomRows').value = '';
+                document.getElementById('adminClassroomSeats').value = '';
+
+                await loadClassrooms();
+            } else {
+                messageEl.textContent = data.message || 'Luokkahuoneen lisääminen epäonnistui.';
+                messageEl.style.color = 'red';
+            }
+        } catch (err) {
+            console.error('Luokkahuoneen lisääminen epäonnistui:', err);
+            messageEl.textContent = 'Verkkovirhe luokkahuoneen lisäämisessä.';
+            messageEl.style.color = 'red';
+        }
+    }
+ 
+    // Päivittää käyttöliittymän elementit kirjautumistilan mukaan 
+    function updateAuthUI() { 
+        const authForms = document.getElementById('authForms'); 
+        const logoutSection = document.getElementById('logoutSection'); 
+        const formContent = document.getElementById('reservationFormContent'); 
+        const loginPromptText = document.getElementById('loginPromptText'); 
+        const loggedUserText = document.getElementById('loggedUserText'); 
+        const adminClassroomSection = document.getElementById('adminClassroomSection');
+ 
+        if (currentUser) { 
+            authForms.style.display = 'none'; 
+            logoutSection.style.display = 'flex'; 
+            loggedUserText.textContent = `Kirjautunut: ${currentUser.nimi} (${currentUser.rooli})`; 
+            formContent.classList.remove('disabled-section'); 
+            loginPromptText.style.display = 'none'; 
+
+            const isAdmin = currentUser.rooli === 'admin' || currentUser.rooli === 'ylläpitäjä';
+            if (isAdmin) {
+                adminClassroomSection.style.display = 'block';
+            } else {
+                adminClassroomSection.style.display = 'none';
+            }
+        } else { 
+            authForms.style.display = 'block'; 
+            logoutSection.style.display = 'none'; 
+            formContent.classList.add('disabled-section'); 
+            loginPromptText.style.display = 'block'; 
+            adminClassroomSection.style.display = 'none';
+        } 
+    } 
+ 
+    // Hakee luokkahuoneet API:sta ja lisää ne alasvetovalikkoon 
+    async function loadClassrooms() { 
+        try { 
+            const res = await fetch(`${API_URL}/classrooms`, { credentials: 'include' }); 
+            if (res.ok) { 
+                const classrooms = await res.json(); 
+                const classroomSelect = document.getElementById('classroomSelect'); 
+                 
+                classroomSelect.innerHTML = '<option value="" disabled selected>-- Valitse luokka --</option>'; 
+                 
+                classrooms.forEach(luokka => { 
+                    const option = document.createElement('option'); 
+                    option.value = luokka.luokka_id; 
+                    option.textContent = `${luokka.nimi} (Koko: ${luokka.koko})`; 
+                    classroomSelect.appendChild(option); 
+                }); 
+            } 
+        } catch (err) { 
+            console.error("Luokkien haku epäonnistui", err); 
+        } 
+    } 
+ 
+    // Hakee tietyn luokan ja päivämäärän istumapaikat sekä luo paikkaruudukon 
+    async function loadSeats() { 
+        const seatContainer = document.getElementById('seatContainer'); 
+        seatContainer.innerHTML = ''; 
+        selectedSeatId = null; 
+        document.getElementById('selectedSeatText').textContent = 'Ei valittu'; 
+ 
+        const classId = document.getElementById('classroomSelect').value; 
+        const date = document.getElementById('bookingDate').value; 
+ 
+        if (!classId || !date) return; 
+ 
+        try { 
+            const res = await fetch(`${API_URL}/classrooms/${classId}/seats?date=${date}`, { 
+                credentials: 'include' 
+            }); 
+ 
+            if (res.ok) { 
+                const data = await res.json(); 
+                currentSeatsData = data.seats || []; 
+ 
+                currentSeatsData.forEach(paikka => { 
+                    const btn = document.createElement('button'); 
+                    btn.classList.add('seat'); 
+                     
+                    const seatNum = paikka.paikka_numero; 
+                    const rowNum = paikka.rivin_numero; 
+                    btn.textContent = `Rivi ${rowNum}, P${seatNum}`; 
+ 
+                    const seatId = paikka.lp_id; 
+ 
+                    if (paikka.is_reserved) { 
+                        btn.classList.add('reserved'); 
+                        btn.disabled = true; 
+                    } 
+ 
+                    btn.addEventListener('click', () => { 
+                        if (!currentUser) { 
+                            alert('Kirjaudu sisään valitaksesi paikkoja!'); 
+                            return; 
+                        } 
+                         
+                        document.querySelectorAll('.seat').forEach(s => s.classList.remove('selected')); 
+                        btn.classList.add('selected'); 
+                        selectedSeatId = seatId; 
+                        document.getElementById('selectedSeatText').textContent = `Rivi ${rowNum}, Paikka ${seatNum}`; 
+                    }); 
+ 
+                    seatContainer.appendChild(btn); 
+                }); 
+            } 
+        } catch (err) { 
+            console.error("Paikkojen haku epäonnistui", err); 
+        } 
+    } 
+ 
+    // Käsittelee varauksen lähettämisen tietokantaan 
+    async function handleReservationAction() {  
+        if (!currentUser) return; 
+ 
+        const date = document.getElementById('bookingDate').value; 
+ 
+        if (!selectedSeatId) { 
+            alert('Valitse ensin istumapaikka ruudukosta!'); 
+            return; 
+        } 
+        if (!date) { 
+            alert('Valitse päivämäärä varaukselle!'); 
+            return; 
+        } 
+ 
+        try { 
+            const res = await fetch(`${API_URL}/reservations`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ 
+                    paikka_id: selectedSeatId, 
+                    ajankohta: date 
+                }), 
+                credentials: 'include' 
+            }); 
+ 
+            if (res.ok) { 
+                alert('Varaus tehty onnistuneesti!'); 
+                selectedSeatId = null; 
+                document.getElementById('selectedSeatText').textContent = 'Ei valittu'; 
+                 
+                await loadSeats(); 
+                await loadReservations(); 
+            } else { 
+                const errData = await res.json(); 
+                alert('Varaus epäonnistui: ' + (errData.message || 'Tuntematon virhe')); 
+            } 
+        } catch (err) { 
+            alert('Verkkovirhe varauksessa.'); 
+        } 
+    } 
+ 
+    // Hakee ja näyttää varaukset taulukossa (käyttäjän roolin mukaan) 
+    async function loadReservations() { 
+        const tableBody = document.getElementById('reservationTable'); 
+        tableBody.innerHTML = ''; 
+ 
+        if (!currentUser) return;
+
+        try { 
+            const isAdmin = currentUser.rooli === 'admin' || currentUser.rooli === 'ylläpitäjä';
+            let endpoint = `${API_URL}/reservations/my`; 
+            if (isAdmin) { 
+                endpoint = `${API_URL}/admin/reservations`; 
+            } 
+ 
+            const res = await fetch(endpoint, { credentials: 'include' }); 
+            if (!res.ok) return; 
+            const varaukset = await res.json(); 
+ 
+            varaukset.forEach(v => { 
+                const row = document.createElement('tr'); 
+
+                // Jokaiselle omalle varaukselle tai adminille tarjotaan poisto-oikeutta
+                const canDelete = currentUser ? true : false;
+                 
+                let actionsHtml = ''; 
+                if (canDelete) { 
+                    actionsHtml = ` 
+                        <td> 
+                            <button class="delete-btn" style="background-color: #d9534f; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Poista</button> 
+                        </td> 
+                    `; 
+                } else { 
+                    actionsHtml = `<td><em>Ei oikeutta</em></td>`; 
+                } 
+ 
+                const vId = v.varaus_id; 
+                const userName = v.student_nimi || currentUser?.nimi || 'Käyttäjä'; 
+               // const className = v.nimi || 'Luokka'; 
+               const className = v.luokka_nimi || 'Luokka';
+                const seatInfo = `Rivi ${v.rivin_numero}, Paikka ${v.paikka_numero}`; 
+                const formattedDate = v.ajankohta ? v.ajankohta.split('T')[0] : ''; 
+ 
+                row.innerHTML = ` 
+                    <td>${userName}</td> 
+                    <td>${className}</td> 
+                    <td>${seatInfo}</td> 
+                    <td>${formattedDate}</td> 
+                    ${actionsHtml} 
+                `; 
+ 
+                // Liitetään poistopainikkeeseen kuuntelija
+                const deleteBtn = row.querySelector('.delete-btn');
+                if (deleteBtn) { 
+                    deleteBtn.addEventListener('click', () => { 
+                        deleteReservation(vId); 
+                    }); 
+                } 
+ 
+                tableBody.appendChild(row); 
+            }); 
+        } catch (err) { 
+            console.error("Varausten haku epäonnistui", err); 
+        } 
+    } 
+ 
+    // Poistaa valitun varauksen ID:n perusteella 
+    async function deleteReservation(varausId) { 
+        if (!currentUser) return; 
+ 
+        if (confirm('Haluatko varmasti peruuttaa tämän varauksen?')) { 
+            try { 
+                const res = await fetch(`${API_URL}/reservations/${varausId}`, { 
+                    method: 'DELETE', 
+                    credentials: 'include' 
+                }); 
+ 
+                if (res.ok) { 
+                    await loadSeats(); 
+                    await loadReservations(); 
+                    alert('Varaus peruutettu!'); 
+                } else { 
+                    const errData = await res.json().catch(() => ({}));
+                    alert('Poisto epäonnistui: ' + (errData.message || 'Virhe palvelimella')); 
+                } 
+            } catch (err) { 
+                alert('Verkkovirhe poistossa.'); 
+            } 
+        } 
+    } 
+ 
+    // Käynnistetään sovelluksen alustus
+    init(); 
+</script>

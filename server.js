@@ -1,3 +1,4 @@
+
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -22,7 +23,7 @@ const reservationRoutes = require('./classroom-reservation-backend/src/routes/re
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Istuntojen tallennuksen määritys MySQL-tietokantaan
+// Istuntojen tallennus MySQL-tietokantaan
 const sessionStore = new MySQLStore({}, pool);
 
 // Middlewares
@@ -30,9 +31,10 @@ app.use(cors({
   origin: 'http://127.0.0.1:5500',
   credentials: true
 }));
+
 app.use(express.json());
 
-// Istuntojen hallintaohjelmiston (Session Middleware) määritys
+// Session
 app.use(session({
   key: 'session_cookie_name',
   secret: process.env.SESSION_SECRET || 'super_secret_session_key',
@@ -40,34 +42,32 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    maxAge: 1000 * 60 * 60 * 24, // Istunto on voimassa 24 tuntia
-    httpOnly: true, // Suojaus JavaScript-pääsyltä (XSS)
-    secure: false,  // true vain HTTPS-yhteyttä käytettäessä
+    maxAge: 1000 * 60 * 60 * 24,
+    httpOnly: true,
+    secure: false,
     sameSite: 'lax'
   }
 }));
 
-// Asetetaan Swagger UI -dokumentaatio osoitteeseen /api-docs
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
-// API-reittien rekisteröinti
+// API-reitit
 app.use('/api/classrooms', classroomRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/reservations', reservationRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Olemattomien reittien käsittely (404)
+// 404
 app.use((req, res, next) => {
   res.status(404).json({ message: 'Reittiä ei löytynyt' });
 });
 
-// Globaali virheenkäsittelijä (500)
+// 500
 app.use((err, req, res, next) => {
   console.error('Käsittelemätön palvelinvirhe:', err);
   res.status(500).json({ message: 'Sisäinen palvelinvirhe' });
 });
 
-// Palvelimen käynnistys
+// Käynnistetään palvelin
 app.listen(PORT, () => {
- console.log(`Palvelin on käynnistetty portissa ${PORT}`);
+  console.log(`Palvelin on käynnistetty portissa ${PORT}`);
 });
+

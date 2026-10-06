@@ -1,8 +1,11 @@
 const mysql = require('mysql2/promise');
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../../../.env') });
 
-console.log('DB_USER:', process.env.DB_USER)
+require('dotenv').config({
+  path: path.resolve(__dirname, '../../.env')
+});
+
+console.log('DB_USER:', process.env.DB_USER);
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
@@ -12,7 +15,7 @@ const pool = mysql.createPool({
   port: process.env.DB_PORT,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
+  queueLimit: 0
 });
 
 pool.getConnection()
@@ -21,7 +24,10 @@ pool.getConnection()
     connection.release();
   })
   .catch((err) => {
-    console.error('Virhe yhdistettäessä MySQL-tietokantaan:', err.message);
+    console.error(
+      'Virhe yhdistettäessä MySQL-tietokantaan:',
+      err.message
+    );
   });
 
 module.exports = pool;

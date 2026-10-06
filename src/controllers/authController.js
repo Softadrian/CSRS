@@ -1,3 +1,4 @@
+
 const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 
@@ -6,10 +7,13 @@ exports.register = async (req, res) => {
   const { nimi, sahkoposti, salasana } = req.body;
 
   if (!nimi || !sahkoposti || !salasana) {
-    return res.status(400).json({ message: 'Täytä kaikki kentät' });
+    return res.status(400).json({
+      message: 'Täytä kaikki kentät'
+    });
   }
 
   try {
+    // Tarkistetaan, onko käyttäjä jo olemassa
     const [existingUser] = await pool.query(
       'SELECT * FROM Kayttajat WHERE sahkoposti = ?',
       [sahkoposti]
@@ -21,8 +25,10 @@ exports.register = async (req, res) => {
       });
     }
 
+    // Salataan salasana
     const hashedPassword = await bcrypt.hash(salasana, 10);
 
+    // Tallennetaan salasana oikeaan sarakkeeseen
     const [result] = await pool.query(
       `INSERT INTO Kayttajat
        (nimi, sahkoposti, salasanan_hash, rooli)
@@ -34,11 +40,16 @@ exports.register = async (req, res) => {
       message: 'Rekisteröinti onnistui',
       userId: result.insertId
     });
+
   } catch (error) {
     console.error('Virhe rekisteröinnissä:', error);
-    res.status(500).json({ message: 'Palvelinvirhe' });
+
+    res.status(500).json({
+      message: 'Palvelinvirhe'
+    });
   }
 };
+
 
 // Kirjautuminen
 exports.login = async (req, res) => {
@@ -51,6 +62,7 @@ exports.login = async (req, res) => {
   }
 
   try {
+    // Etsitään käyttäjä sähköpostilla
     const [users] = await pool.query(
       'SELECT * FROM Kayttajat WHERE sahkoposti = ?',
       [sahkoposti]
@@ -64,6 +76,7 @@ exports.login = async (req, res) => {
 
     const user = users[0];
 
+    // Tarkistetaan salasana
     const isMatch = await bcrypt.compare(
       salasana,
       user.salasanan_hash
@@ -75,6 +88,7 @@ exports.login = async (req, res) => {
       });
     }
 
+    // Tallennetaan käyttäjä sessioon
     req.session.user = {
       id: user.kayttaja_id,
       nimi: user.nimi,
@@ -86,11 +100,16 @@ exports.login = async (req, res) => {
       message: 'Kirjautuminen onnistui',
       user: req.session.user
     });
+
   } catch (error) {
     console.error('Virhe kirjautumisessa:', error);
-    res.status(500).json({ message: 'Palvelinvirhe' });
+
+    res.status(500).json({
+      message: 'Palvelinvirhe'
+    });
   }
 };
+
 
 // Nykyinen käyttäjä
 exports.getMe = (req, res) => {
@@ -103,9 +122,11 @@ exports.getMe = (req, res) => {
   res.json(req.session.user);
 };
 
+
 // Uloskirjautuminen
 exports.logout = (req, res) => {
   req.session.destroy((err) => {
+
     if (err) {
       return res.status(500).json({
         message: 'Uloskirjautuminen epäonnistui'
