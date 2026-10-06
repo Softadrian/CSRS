@@ -5,7 +5,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #f4f4f4;
+    background: #f0efef;
 }
 
 .container {
@@ -16,7 +16,7 @@ body {
 }
 
 .card {
-    background: white;
+    background: rgb(151, 148, 148);
     padding: 20px;
     margin-bottom: 20px;
     border-radius: 10px;
@@ -35,7 +35,7 @@ body {
     height: 60px;
     border: none;
     background: #4caf50;
-    color: white;
+    color: rgb(175, 171, 171);
     font-weight: bold;
     cursor: pointer;
     border-radius: 5px;
@@ -82,7 +82,7 @@ align-items: center;
 /* Valittu paikka */
 .seat.selected {
 background-color: #ff9800;
-color: white;
+color: rgb(161, 155, 155);
 }
  
 /* Varattu paikka */
