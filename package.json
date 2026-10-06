@@ -16,7 +16,9 @@
     "express-session": "^1.19.0",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.24.5",
-    "pg": "^8.11.5"
+    "pg": "^8.11.5",
+    "swagger-ui-express": "^5.0.1",
+    "yamljs": "^0.3.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
