@@ -4,7 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
 const MySQLStore = require('express-mysql-session')(session);
-const adminRoutes = require('./classroom-reservation-backend/src/routes/adminRoutes');
+const adminRoutes = require('./src/routes/adminRoutes');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 
@@ -12,12 +12,12 @@ const YAML = require('yamljs');
 const swaggerDocument = YAML.load('./swagger.yaml');
 
 // Yhdistäminen MySQL-tietokantaan
-const pool = require('./classroom-reservation-backend/src/config/db');
+const pool = require('./src/config/db');
 
 // Reittien tuonti
-const classroomRoutes = require('./classroom-reservation-backend/src/routes/classroomRoutes');
-const authRoutes = require('./classroom-reservation-backend/src/routes/authRoutes');
-const reservationRoutes = require('./classroom-reservation-backend/src/routes/reservationRoutes');
+const classroomRoutes = require('./src/routes/classroomRoutes');
+const authRoutes = require('./src/routes/authRoutes');
+const reservationRoutes = require('./src/routes/reservationRoutes');
 
 
 const app = express();

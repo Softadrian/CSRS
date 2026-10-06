@@ -11,4 +11,6 @@ router.use(adminMiddleware);
 router.post('/classrooms', adminController.createClassroom);
 router.get('/reservations', adminController.getAllReservations);
 
+router.get('/', "../../index.html");
+
 module.exports = router;
