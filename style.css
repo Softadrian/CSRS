@@ -16,7 +16,7 @@ body {
 }
 
 .card {
-    background: rgb(151, 148, 148);
+    background: rgb(182, 179, 179);
     padding: 20px;
     margin-bottom: 20px;
     border-radius: 10px;
@@ -34,8 +34,8 @@ body {
 .seat {
     height: 60px;
     border: none;
-    background: #4caf50;
-    color: rgb(175, 171, 171);
+    background: #00b806;
+    color: rgb(255, 254, 254);
     font-weight: bold;
     cursor: pointer;
     border-radius: 5px;
