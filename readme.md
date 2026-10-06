@@ -2,8 +2,6 @@
 
 Tämä on täysiverinen luokkahuoneiden istumapaikkojen varausjärjestelmä. Sovellus koostuje Express-pohjaisesta REST API -taustajärjestelmästä (backend) ja interaktiivisesta Single Page Application (SPA) -käyttöliittymästä (frontend).
 
----
-
 ## Teknologiat
 
 ### Taustajärjestelmä (Backend)
@@ -44,7 +42,6 @@ Käyttöliittymä (`public/index.html` & `public/style.css`) on toteutettu ilman
 
 ## Projektirakenne
 
-```text
 classroom-reservation-backend/
 ├── public/                # Julkiset staattiset tiedostot (frontend)
 │   ├── index.html         # SPA-käyttöliittymän HTML-rakenne
