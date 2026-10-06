@@ -35,6 +35,9 @@ app.use(cors({
 
 app.use(express.json());
 
+// Staattisten tiedostojen jakaminen (public-kansio)
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Session
 app.use(session({
   key: 'session_cookie_name',
