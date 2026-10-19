@@ -1,73 +1,172 @@
+
 const pool = require('../config/db');
 
-// Luo uusi luokkahuone ja paikat
+// Luo uusi luokkahuone ja sen paikat
 exports.createClassroom = async (req, res) => {
   const { nimi, rivit, paikat } = req.body;
 
-  if (!nimi || !rivit || !paikat) {
+  if (
+    typeof nimi !== 'string' ||
+    !nimi.trim() ||
+    !Number.isInteger(Number(rivit)) ||
+    !Number.isInteger(Number(paikat)) ||
+    Number(rivit) < 1 ||
+    Number(paikat) < 1
+  ) {
     return res.status(400).json({
-      message: 'Ilmoita nimi, rivien määrä ja paikkojen määrä rivillä'
+      message: 'Anna luokkahuoneen nimi, rivien määrä ja paikkojen määrä.'
     });
   }
 
-  const connection = await pool.getConnection();
+  const rivienMaara = Number(rivit);
+  const paikkojenMaara = Number(paikat);
+
+  // Estetään vahingossa erittäin suurten luokkahuoneiden luominen
+  if (rivienMaara > 100 || paikkojenMaara > 100) {
+    return res.status(400).json({
+      message: 'Rivien ja paikkojen määrä voi olla enintään 100.'
+    });
+  }
+
+  let connection;
 
   try {
+    connection = await pool.getConnection();
     await connection.beginTransaction();
 
-    const koko = rivit * paikat;
+    const koko = rivienMaara * paikkojenMaara;
 
-    // Luo luokkahuone
     const [classroomResult] = await connection.query(
       `INSERT INTO Luokkahuoneet
        (nimi, koko, rivit, paikat)
        VALUES (?, ?, ?, ?)`,
-      [nimi, koko, rivit, paikat]
+      [nimi.trim(), koko, rivienMaara, paikkojenMaara]
     );
 
-    const luokka_id = classroomResult.insertId;
-
-    // Luo paikat
+    const luokkaId = classroomResult.insertId;
     const seatsData = [];
 
-    for (let r = 1; r <= rivit; r++) {
-      for (let p = 1; p <= paikat; p++) {
-        seatsData.push([
-          luokka_id,
-          r,
-          p
-        ]);
+    for (let r = 1; r <= rivienMaara; r++) {
+      for (let p = 1; p <= paikkojenMaara; p++) {
+        seatsData.push([luokkaId, r, p]);
       }
     }
 
+    if (seatsData.length > 0) {
+      await connection.query(
+        `INSERT INTO Luokkahuoneen_paikat
+         (luokka_id, rivin_numero, paikka_numero)
+         VALUES ?`,
+        [seatsData]
+      );
+    }
+
+    await connection.commit();
+
+    return res.status(201).json({
+      message: 'Luokkahuone ja paikat luotiin onnistuneesti.',
+      luokka_id: luokkaId,
+      total_seats: koko
+    });
+  } catch (error) {
+    if (connection) {
+      await connection.rollback();
+    }
+
+    console.error('Luokkahuoneen luontivirhe:', error);
+
+    return res.status(500).json({
+      message: 'Luokkahuoneen luominen epäonnistui.'
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+};
+
+
+// Poista luokkahuone, sen paikat ja niihin liittyvät varaukset
+exports.deleteClassroom = async (req, res) => {
+  const luokkaId = Number(req.params.id);
+
+  if (!Number.isInteger(luokkaId) || luokkaId < 1) {
+    return res.status(400).json({
+      message: 'Virheellinen luokkahuoneen tunnus.'
+    });
+  }
+
+  let connection;
+
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    // Tarkista luokkahuoneen olemassaolo
+    const [classrooms] = await connection.query(
+      `SELECT luokka_id
+       FROM Luokkahuoneet
+       WHERE luokka_id = ?
+       FOR UPDATE`,
+      [luokkaId]
+    );
+
+    if (classrooms.length === 0) {
+      await connection.rollback();
+
+      return res.status(404).json({
+        message: 'Luokkahuonetta ei löydy.'
+      });
+    }
+
+    // Poista paikkoihin liittyvät varaukset
     await connection.query(
-      `INSERT INTO Luokkahuoneen_paikat
-       (luokka_id, rivin_numero, paikka_numero)
-       VALUES ?`,
-      [seatsData]
+      `DELETE v
+       FROM Varaukset v
+       INNER JOIN Luokkahuoneen_paikat lp
+         ON v.paikka_id = lp.lp_id
+       WHERE lp.luokka_id = ?`,
+      [luokkaId]
+    );
+
+    // Poista luokkahuoneen paikat
+    await connection.query(
+      `DELETE FROM Luokkahuoneen_paikat
+       WHERE luokka_id = ?`,
+      [luokkaId]
+    );
+
+    // Poista itse luokkahuone
+    await connection.query(
+      `DELETE FROM Luokkahuoneet
+       WHERE luokka_id = ?`,
+      [luokkaId]
     );
 
     await connection.commit();
 
-    res.status(201).json({
-      message: 'Sali ja paikat luotiin onnistuneesti',
-      luokka_id: luokka_id,
-      total_seats: koko
+    return res.status(200).json({
+      message: 'Luokkahuone ja siihen liittyvät paikat sekä varaukset poistettiin onnistuneesti.'
     });
   } catch (error) {
-    await connection.rollback();
+    if (connection) {
+      await connection.rollback();
+    }
 
-    console.error('Virhe salin luomisessa:', error);
+    console.error('Luokkahuoneen poistovirhe:', error);
 
-    res.status(500).json({
-      message: 'Palvelinvirhe salia luotaessa'
+    return res.status(500).json({
+      message: 'Luokkahuoneen poistaminen epäonnistui. Tarkista palvelimen virheloki.'
     });
   } finally {
-    connection.release();
+    if (connection) {
+      connection.release();
+    }
   }
 };
 
-// Hae kaikki varaukset
+
+// Hae kaikki varaukset ylläpitäjälle
 exports.getAllReservations = async (req, res) => {
   try {
     const [reservations] = await pool.query(
@@ -90,12 +189,12 @@ exports.getAllReservations = async (req, res) => {
        ORDER BY v.ajankohta DESC`
     );
 
-    res.json(reservations);
+    return res.json(reservations);
   } catch (error) {
-    console.error('Virhe kaikkien varausten hakemisessa:', error);
+    console.error('Varausten hakeminen epäonnistui:', error);
 
-    res.status(500).json({
-      message: 'Palvelinvirhe'
+    return res.status(500).json({
+      message: 'Varausten hakeminen epäonnistui.'
     });
   }
 };

@@ -44,6 +44,7 @@
             <p id="loginError" style="color: red; font-size: 0.85em; margin-top: 5px;"></p>
         </div>
         
+        <!-- Uloskirjautumisosio -->
         <div id="logoutSection" class="login-info" style="display:none;">
             <span style="color: green; font-weight: bold;" id="loggedUserText">Kirjautunut sisään</span>
             <button id="logoutBtn" style="background-color: #d9534f;">Kirjaudu ulos</button>
@@ -76,38 +77,30 @@
         <p id="loginPromptText" style="color: #d9534f; font-weight: bold; margin-top: 10px;">Kirjaudu sisään tehdäksesi varauksia.</p>
     </div>
 
-    <!-- Admin: uuden luokkahuoneen lisääminen -->
+    <!-- Admin: uuden luokkahuoneen lisääminen ja olemassa olevan poistaminen -->
     <div class="card" id="adminClassroomSection" style="display: none;">
-        <h2>Lisää luokkahuone</h2>
+        <h2>Hallinnoi luokkahuoneita</h2>
 
-        <input
-            type="text"
-            id="adminClassroomName"
-            placeholder="Luokkahuoneen nimi"
-            style="margin-bottom: 8px; width: 100%; padding: 5px; box-sizing: border-box;"
-        >
+        <!-- Luokkahuoneen lisäämisosio -->
+        <div style="margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 15px;">
+            <h3>Lisää luokkahuone</h3>
+            <input type="text" id="adminClassroomName" placeholder="Luokkahuoneen nimi" style="margin-bottom: 8px; width: 100%; padding: 5px; box-sizing: border-box;">
+            <input type="number" id="adminClassroomRows" placeholder="Rivien määrä" min="1" style="margin-bottom: 8px; width: 100%; padding: 5px; box-sizing: border-box;">
+            <input type="number" id="adminClassroomSeats" placeholder="Paikkoja per rivi" min="1" style="margin-bottom: 10px; width: 100%; padding: 5px; box-sizing: border-box;">
+            <button id="addClassroomBtn">Lisää luokkahuone</button>
+            <p id="adminClassroomMessage" style="font-weight: bold; margin-top: 10px;"></p>
+        </div>
 
-        <input
-            type="number"
-            id="adminClassroomRows"
-            placeholder="Rivien määrä"
-            min="1"
-            style="margin-bottom: 8px; width: 100%; padding: 5px; box-sizing: border-box;"
-        >
-
-        <input
-            type="number"
-            id="adminClassroomSeats"
-            placeholder="Paikkoja per rivi"
-            min="1"
-            style="margin-bottom: 10px; width: 100%; padding: 5px; box-sizing: border-box;"
-        >
-
-        <button id="addClassroomBtn">
-            Lisää luokkahuone
-        </button>
-
-        <p id="adminClassroomMessage" style="font-weight: bold; margin-top: 10px;"></p>
+        <!-- Luokkahuoneen poisto-osio -->
+        <div>
+            <h3>Poista luokkahuone</h3>
+            <div style="margin-bottom: 10px;">
+                <label for="adminDeleteClassroomSelect">Valitse poistettava luokka:</label>
+                <select id="adminDeleteClassroomSelect" style="width: 100%; padding: 5px; margin-top: 5px;"></select>
+            </div>
+            <button id="deleteClassroomBtn" style="background-color: #d9534f; color: white;">Poista luokkahuone</button>
+            <p id="adminDeleteMessage" style="font-weight: bold; margin-top: 10px;"></p>
+        </div>
     </div>
 
     <!-- Olemassa olevien varausten taulukko -->
@@ -129,7 +122,7 @@
 </div>
 <script>
     // Taustajärjestelmän API-osoite
-    const API_URL = 'http://127.0.0.1:5000/api';  //laita tähän oikea osoite, jos se on eri kuin localhost:3000
+    const API_URL = 'http://127.0.0.1:5000/api';
  
     // Globaalit muuttujat sovelluksen tilanhallintaan 
     let selectedSeatId = null;  // Valitun istumapaikan ID 
@@ -148,8 +141,9 @@
         document.getElementById('registerBtn').addEventListener('click', handleRegister); 
         document.getElementById('logoutBtn').addEventListener('click', handleLogout); 
 
-        // Admin-toiminto: uuden luokkahuoneen lisääminen
+        // Admin-toiminnot: uuden luokan lisääminen ja luokan poistaminen
         document.getElementById('addClassroomBtn').addEventListener('click', handleAddClassroom);
+        document.getElementById('deleteClassroomBtn').addEventListener('click', handleDeleteClassroom);
  
         // Välilehtien vaihtaminen kirjautumisen ja rekisteröitymisen välillä 
         document.getElementById('showLoginTab').addEventListener('click', () => { 
@@ -166,7 +160,7 @@
         const localDate = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
         document.getElementById('bookingDate').value = localDate;
  
-        // Tarkistetaan onko käyttäjä jo kirjautunut ja ladataan aloitusdata 
+        // Tarkistetaan käyttäjän kirjautumistila ja ladataan luokat sekä varaukset
         await checkAuth(); 
         await loadClassrooms(); 
         await loadReservations(); 
@@ -245,9 +239,9 @@
                 errorEl.textContent = errData.message || 'Rekisteröinti epäonnistui'; 
             } 
        } catch (err) {
-    console.error(err);
-    errorEl.textContent = err.message;
-} 
+            console.error(err);
+            errorEl.textContent = err.message;
+        } 
     } 
  
     // Käsittelee käyttäjän uloskirjautumisen 
@@ -267,7 +261,7 @@
         await loadSeats(); 
     } 
 
-    // Admin: uuden luokkahuoneen lisääminen
+    // Admin-toiminto: uuden luokkahuoneen lisääminen
     async function handleAddClassroom() {
         if (!currentUser || (currentUser.rooli !== 'admin' && currentUser.rooli !== 'ylläpitäjä')) {
             alert('Vain ylläpitäjä voi lisätä luokkahuoneita.');
@@ -281,6 +275,7 @@
 
         messageEl.textContent = '';
 
+        // Lomakekenttien tarkastukset
         if (!nimi) {
             messageEl.textContent = 'Anna luokkahuoneelle nimi.';
             messageEl.style.color = 'red';
@@ -294,7 +289,7 @@
         }
 
         if (!Number.isInteger(paikat) || paikat < 1) {
-            messageEl.textContent = 'Paikkojen määrän pitää olla vähintään 1.';
+            messageEl.textContent = 'Paikkojan määrän pitää olla vähintään 1.';
             messageEl.style.color = 'red';
             return;
         }
@@ -313,10 +308,12 @@
                 messageEl.textContent = data.message || 'Luokkahuone lisätty onnistuneesti.';
                 messageEl.style.color = 'green';
 
+                // Tyhjennetään syötekentät lisäyksen jälkeen
                 document.getElementById('adminClassroomName').value = '';
                 document.getElementById('adminClassroomRows').value = '';
                 document.getElementById('adminClassroomSeats').value = '';
 
+                // Päivitetään luokkamääritelmät käyttöliittymään
                 await loadClassrooms();
             } else {
                 messageEl.textContent = data.message || 'Luokkahuoneen lisääminen epäonnistui.';
@@ -328,8 +325,60 @@
             messageEl.style.color = 'red';
         }
     }
+
+    // Admin-toiminto: luokkahuoneen poistaminen
+    async function handleDeleteClassroom() {
+        if (!currentUser || (currentUser.rooli !== 'admin' && currentUser.rooli !== 'ylläpitäjä')) {
+            alert('Vain ylläpitäjä voi poistaa luokkahuoneita.');
+            return;
+        }
+
+        const selectEl = document.getElementById('adminDeleteClassroomSelect');
+        const classId = selectEl.value;
+        const messageEl = document.getElementById('adminDeleteMessage');
+
+        messageEl.textContent = '';
+
+        if (!classId) {
+            messageEl.textContent = 'Valitse poistettava luokkahuone.';
+            messageEl.style.color = 'red';
+            return;
+        }
+
+        // Pyydetään varmistus poistolle
+        if (!confirm('Haluatko varmasti poistaa tämän luokkahuoneen? Kaikki siihen liittyvät paikat ja varaukset saatetaan poistaa.')) {
+            return;
+        }
+
+        try {
+            // Lähetetään poistopyyntö API-palvelimelle
+            const res = await fetch(`${API_URL}/admin/classrooms/${classId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+
+            const data = await res.json().catch(() => ({}));
+
+            if (res.ok) {
+                messageEl.textContent = data.message || 'Luokkahuone poistettu onnistuneesti.';
+                messageEl.style.color = 'green';
+
+                // Ladataan luokat, paikat ja varaukset uudelleen näkyviin
+                await loadClassrooms();
+                await loadSeats();
+                await loadReservations();
+            } else {
+                messageEl.textContent = data.message || 'Luokan poistaminen epäonnistui.';
+                messageEl.style.color = 'red';
+            }
+        } catch (err) {
+            console.error('Luokan poistaminen epäonnistui:', err);
+            messageEl.textContent = 'Verkkovirhe luokan poistamisessa.';
+            messageEl.style.color = 'red';
+        }
+    }
  
-    // Päivittää käyttöliittymän elementit kirjautumistilan mukaan 
+    // Päivittää käyttöliittymän elementit kirjautumistilan ja käyttäjäroolin mukaan 
     function updateAuthUI() { 
         const authForms = document.getElementById('authForms'); 
         const logoutSection = document.getElementById('logoutSection'); 
@@ -345,6 +394,7 @@
             formContent.classList.remove('disabled-section'); 
             loginPromptText.style.display = 'none'; 
 
+            // Näytetään hallinta-osio vain admin-/ylläpitäjäkäyttäjille
             const isAdmin = currentUser.rooli === 'admin' || currentUser.rooli === 'ylläpitäjä';
             if (isAdmin) {
                 adminClassroomSection.style.display = 'block';
@@ -360,21 +410,33 @@
         } 
     } 
  
-    // Hakee luokkahuoneet API:sta ja lisää ne alasvetovalikkoon 
+    // Hakee luokkahuoneet API:sta ja päivittää ne varausten valintalistaan ja adminin poistolistaan
     async function loadClassrooms() { 
         try { 
             const res = await fetch(`${API_URL}/classrooms`, { credentials: 'include' }); 
             if (res.ok) { 
                 const classrooms = await res.json(); 
+                
+                // Päivitetään varausosion päävalikko
                 const classroomSelect = document.getElementById('classroomSelect'); 
-                 
                 classroomSelect.innerHTML = '<option value="" disabled selected>-- Valitse luokka --</option>'; 
                  
+                // Päivitetään myös adminin poistovalikko
+                const adminDeleteSelect = document.getElementById('adminDeleteClassroomSelect');
+                adminDeleteSelect.innerHTML = '<option value="" disabled selected>-- Valitse poistettava luokka --</option>';
+
                 classrooms.forEach(luokka => { 
+                    // Luodaan optio päävalikkoon
                     const option = document.createElement('option'); 
                     option.value = luokka.luokka_id; 
                     option.textContent = `${luokka.nimi} (Koko: ${luokka.koko})`; 
                     classroomSelect.appendChild(option); 
+
+                    // Luodaan optio adminin poistovalikkoon
+                    const deleteOption = document.createElement('option');
+                    deleteOption.value = luokka.luokka_id;
+                    deleteOption.textContent = `${luokka.nimi}`;
+                    adminDeleteSelect.appendChild(deleteOption);
                 }); 
             } 
         } catch (err) { 
@@ -501,7 +563,6 @@
             varaukset.forEach(v => { 
                 const row = document.createElement('tr'); 
 
-                // Jokaiselle omalle varaukselle tai adminille tarjotaan poisto-oikeutta
                 const canDelete = currentUser ? true : false;
                  
                 let actionsHtml = ''; 
@@ -517,8 +578,7 @@
  
                 const vId = v.varaus_id; 
                 const userName = v.student_nimi || currentUser?.nimi || 'Käyttäjä'; 
-               // const className = v.nimi || 'Luokka'; 
-               const className = v.luokka_nimi || 'Luokka';
+                const className = v.luokka_nimi || 'Luokka';
                 const seatInfo = `Rivi ${v.rivin_numero}, Paikka ${v.paikka_numero}`; 
                 const formattedDate = v.ajankohta ? v.ajankohta.split('T')[0] : ''; 
  
@@ -573,3 +633,5 @@
     // Käynnistetään sovelluksen alustus
     init(); 
 </script>
+</body>
+</html>
