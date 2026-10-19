@@ -5,7 +5,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #f0efef;
+    background: #ffffff;
 }
 
 .container {
@@ -16,7 +16,7 @@ body {
 }
 
 .card {
-    background: rgb(182, 179, 179);
+    background: rgb(243, 240, 240);
     padding: 20px;
     margin-bottom: 20px;
     border-radius: 10px;
@@ -34,7 +34,7 @@ body {
 .seat {
     height: 60px;
     border: none;
-    background: #00b806;
+    background: #304d02;
     color: rgb(255, 254, 254);
     font-weight: bold;
     cursor: pointer;
