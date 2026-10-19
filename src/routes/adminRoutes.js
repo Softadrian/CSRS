@@ -14,5 +14,6 @@ router.get('/', (req, res) => {
 
 router.post('/classrooms', adminController.createClassroom);
 router.get('/reservations', adminController.getAllReservations);
+router.delete('/classrooms/:id', adminController.deleteClassroom);
 
 module.exports = router;

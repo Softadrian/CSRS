@@ -99,3 +99,50 @@ exports.getAllReservations = async (req, res) => {
     });
   }
 };
+
+// Poista luokkahuone (sekä siihen liittyvät paikat транзакцией)
+exports.deleteClassroom = async (req, res) => {
+  const { id } = req.params;
+
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    // 1. Сначала удаляем все места, привязанные к этому классу, 
+    // чтобы избежать ошибок внешнего ключа (foreign key constraints)
+    await connection.query(
+      `DELETE FROM Luokkahuoneen_paikat WHERE luokka_id = ?`,
+      [id]
+    );
+
+    // 2. Затем удаляем сам класс
+    const [result] = await connection.query(
+      `DELETE FROM Luokkahuoneet WHERE luokka_id = ?`,
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      await connection.rollback();
+      return.status(404).json({
+        message: 'Luokkahuonetta ei löytynyt'
+      });
+    }
+
+    await connection.commit();
+
+    res.json({
+      message: 'Luokkahuone ja sen paikat poistettu onnistuneesti'
+    });
+  } catch (error) {
+    await connection.rollback();
+
+    console.error('Virhe luokan poistamisessa:', error);
+
+    res.status(500).json({
+      message: 'Palvelinvirhe luokkaa poistettaessa'
+    });
+  } finally {
+    connection.release();
+  }
+};
